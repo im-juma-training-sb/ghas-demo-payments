@@ -1,0 +1,54 @@
+# CodeQL ADVANCED setup - committed to ghas-demo-payments as
+# .github/workflows/codeql.yml and doubles as the Slide 12 mini-demo exhibit.
+# Payments uses advanced setup because the sandbox's repo-statistics job never
+# populates linguist data, which default setup depends on (languages: [] ->
+# no analysis). The explicit language matrix below has no such dependency.
+# Do NOT commit this to ghas-demo-legacy - it would break the Demo 1
+# coverage-gap story.
+
+name: "CodeQL advanced setup"
+
+on:
+  push:
+    branches: [ main ]          # analyze every push to main
+  pull_request:
+    branches: [ main ]          # analyze PRs targeting main
+  schedule:
+    - cron: "24 5 * * 1"        # weekly scheduled scan (Mondays 05:24 UTC)
+
+jobs:
+  analyze:
+    name: Analyze (${{ matrix.language }})
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write    # required to upload results to code scanning
+      packages: read            # allows fetching CodeQL packs from GHCR
+      actions: read             # needed on private repos to read workflow metadata
+      contents: read            # checkout access
+
+    strategy:
+      fail-fast: false          # keep analyzing other languages if one fails
+      matrix:
+        include:
+          - language: javascript-typescript
+            build-mode: none    # JS/TS is extracted statically - no build required
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: ${{ matrix.language }}
+          build-mode: ${{ matrix.build-mode }}
+          # This is the key difference from default setup: full control of
+          # the query suite. security-extended adds lower-precision queries
+          # on top of the default code-scanning suite.
+          queries: security-extended
+
+      - name: Perform CodeQL analysis
+        uses: github/codeql-action/analyze@v3
+        with:
+          # category separates results per language on the code scanning tab
+          category: "/language:${{ matrix.language }}"
