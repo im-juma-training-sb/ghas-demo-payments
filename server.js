@@ -19,6 +19,9 @@ app.use((req, res, next) => {
   next();
 });
 
+// Ad-hoc reporting endpoints for finance.
+app.use(require("./reports"));
+
 app.get("/payments", (req, res) => {
   db.all(
     "SELECT id, merchant, amount, currency, status FROM payments ORDER BY id",
